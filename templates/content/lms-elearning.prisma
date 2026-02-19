@@ -1,0 +1,138 @@
+// Module: Content LMS / eLearning
+// Purpose: Course, lesson, enrollment, and assessment models for training platforms.
+
+enum CourseStatus {
+  DRAFT
+  PREVIEW
+  LIVE
+  RETIRED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum LessonType {
+  VIDEO
+  ARTICLE
+  QUIZ
+  LIVE_SESSION
+}
+
+model Course {
+  id             String       @id @default(cuid())
+  organizationId String
+  ownerUserId    String?
+  status         CourseStatus @default(DRAFT)
+  slug           String
+  difficulty     String?
+  durationMinutes Int?
+  tags           String?
+  coverImageKey  String?
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, slug])
+}
+
+model CourseTranslation {
+  id        String   @id @default(cuid())
+  courseId  String
+  locale    String
+  title     String
+  slug      String
+  summary   String?
+  content   Json?
+  seo       Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, locale])
+  @@unique([locale, slug])
+}
+
+model Lesson {
+  id             String     @id @default(cuid())
+  courseId       String
+  type           LessonType @default(VIDEO)
+  order          Int        @default(0)
+  slug           String
+  content        Json?
+  durationSeconds Int?
+  attachments    Json?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([courseId, slug])
+  @@index([courseId, order])
+}
+
+model Enrollment {
+  id             String           @id @default(cuid())
+  organizationId String
+  courseId       String
+  userId         String
+  status         EnrollmentStatus @default(ACTIVE)
+  progress       Int              @default(0)
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([courseId, userId])
+  @@index([organizationId, status])
+}
+
+model EnrollmentProgress {
+  id           String   @id @default(cuid())
+  enrollmentId String
+  lessonId     String
+  completed    Boolean  @default(false)
+  score        Int?
+  lastViewedAt DateTime?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([enrollmentId, lessonId])
+}
+
+model Assessment {
+  id            String   @id @default(cuid())
+  courseId      String
+  lessonId      String?
+  title         String
+  passingScore  Int      @default(70)
+  settings      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([courseId])
+}
+
+model AssessmentAttempt {
+  id            String   @id @default(cuid())
+  assessmentId  String
+  enrollmentId  String
+  userId        String
+  score         Int
+  passed        Boolean  @default(false)
+  responses     Json
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+
+  @@index([assessmentId])
+  @@index([enrollmentId])
+}
+
+// Integration:
+// - Connects to engagement/notifications for reminders and completions
+// - Works with infra/telemetry for video and quiz analytics
+// Notes:
+// - Soft delete courses at root while keeping enrollments for compliance
+// - Keep attempts immutable for auditability of certifications

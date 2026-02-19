@@ -1,0 +1,92 @@
+// Module: Core Feature Flags
+// Purpose: Enables multivariate feature-flag management with targeting rules and environments.
+
+enum FeatureFlagType {
+  BOOLEAN
+  PERCENTAGE
+  MULTIVARIATE
+}
+
+enum FlagRuleType {
+  SEGMENT
+  ATTRIBUTE_MATCH
+  AUDIENCE
+}
+
+model FeatureFlag {
+  id             String          @id @default(cuid())
+  organizationId String
+  key            String
+  name           String
+  description    String?
+  type           FeatureFlagType @default(BOOLEAN)
+  enabled        Boolean         @default(true)
+  defaultVariationId String?
+  tags           String?
+  deletedAt      DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([organizationId, key])
+  @@index([type])
+}
+
+model FeatureFlagEnvironment {
+  id             String   @id @default(cuid())
+  featureFlagId  String
+  environmentKey String
+  isEnabled      Boolean  @default(true)
+  fallthroughVariationId String?
+  rolloutPercentage Int?  @default(100)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([featureFlagId, environmentKey])
+}
+
+model FeatureFlagVariation {
+  id            String   @id @default(cuid())
+  featureFlagId String
+  key           String
+  value         Json
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([featureFlagId, key])
+}
+
+model FeatureFlagRule {
+  id            String      @id @default(cuid())
+  featureFlagId String
+  environmentKey String
+  priority      Int         @default(100)
+  type          FlagRuleType
+  conditions    Json
+  variationId   String?
+  rolloutPercentage Int?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([featureFlagId, environmentKey])
+}
+
+model FeatureFlagTarget {
+  id             String   @id @default(cuid())
+  featureFlagId  String
+  environmentKey String
+  targetType     String   @default("user")
+  targetValue    String
+  variationId    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([featureFlagId, environmentKey, targetType, targetValue])
+}
+
+// Integration:
+// - Hooks into engagement/ab-testing and analytics-events for experimentation telemetry
+// - Ties back to core/rbac for flag-edit permissions per environment
+// Notes:
+// - Soft delete flags via deletedAt; keep versions for audit compatibility
+// - Use rolloutPercentage on rules to support progressive delivery

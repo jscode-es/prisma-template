@@ -1,0 +1,84 @@
+// Module: Operations Support Ticketing
+// Purpose: Omni-channel support tickets with threaded messages and assignments.
+
+enum TicketStatus {
+  NEW
+  OPEN
+  PENDING_CUSTOMER
+  PENDING_INTERNAL
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model SupportTicket {
+  id             String        @id @default(cuid())
+  organizationId String
+  tenantId       String?
+  requesterUserId String?
+  subject        String
+  status         TicketStatus  @default(NEW)
+  priority       TicketPriority @default(NORMAL)
+  channel        String        @default("email")
+  tags           String?
+  metadata       Json?
+  firstResponseAt DateTime?
+  resolvedAt     DateTime?
+  closedAt       DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId, status])
+  @@index([tenantId])
+}
+
+model TicketMessage {
+  id          String   @id @default(cuid())
+  ticketId    String
+  authorUserId String?
+  body        String
+  direction   String   @default("outbound")
+  attachments Json?
+  sentAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ticketId])
+}
+
+model TicketAssignment {
+  id          String   @id @default(cuid())
+  ticketId    String
+  assigneeUserId String
+  assignedAt  DateTime @default(now())
+  unassignedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([ticketId, assigneeUserId, assignedAt])
+}
+
+model TicketTag {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  label          String
+  color          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, key])
+}
+
+// Integration:
+// - Uses content/knowledge-base for suggested answers
+// - Sends notifications via engagement/notifications module for SLAs
+// Notes:
+// - Keep message history immutable; use redaction for PII removal if necessary
+// - Tag keys normalized for reporting; apply multi-tagging via SupportTicket.tags or join table

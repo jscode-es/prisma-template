@@ -1,0 +1,94 @@
+// Module: Commerce Payments
+// Purpose: Gateway-agnostic payment intent + charge tracking with provider metadata.
+
+enum PaymentStatus {
+  REQUIRES_ACTION
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model PaymentProviderAccount {
+  id             String   @id @default(cuid())
+  organizationId String
+  provider       String
+  providerAccountId String
+  settings       Json?
+  capabilities   Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, provider, providerAccountId])
+}
+
+model PaymentIntent {
+  id                String        @id @default(cuid())
+  organizationId    String
+  orderId           String?
+  customerId        String?
+  provider          String
+  providerIntentId  String?
+  amount            Decimal       @db.Decimal(18,2)
+  currency          String        @default("USD")
+  status            PaymentStatus @default(PENDING)
+  clientSecret      String?
+  metadata          Json?
+  nextAction        Json?
+  expiresAt         DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([organizationId, status])
+  @@index([orderId])
+}
+
+model Charge {
+  id                String        @id @default(cuid())
+  organizationId    String
+  paymentIntentId   String
+  provider          String
+  providerChargeId  String
+  amount            Decimal       @db.Decimal(18,2)
+  currency          String        @default("USD")
+  status            PaymentStatus @default(PENDING)
+  authorizedAt      DateTime?
+  capturedAt        DateTime?
+  failureCode       String?
+  failureMessage    String?
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([provider, providerChargeId])
+  @@index([paymentIntentId])
+}
+
+model Refund {
+  id               String       @id @default(cuid())
+  chargeId         String
+  amount           Decimal      @db.Decimal(18,2)
+  currency         String       @default("USD")
+  status           RefundStatus @default(PENDING)
+  reason           String?
+  providerRefundId String?
+  metadata         Json?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([chargeId])
+  @@index([status])
+}
+
+// Integration:
+// - Pairs with commerce/ecommerce orders and commerce/billing-subscriptions invoices
+// - Surfaces to core/audit-log for PCI-aligned tracking
+// Notes:
+// - Do not delete payment records; rely on status to track lifecycle
+// - Store provider payloads in metadata Json for reconciliation scripts

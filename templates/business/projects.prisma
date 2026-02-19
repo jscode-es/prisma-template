@@ -1,0 +1,79 @@
+// Module: Business Projects
+// Purpose: Provides project portfolio management primitives for multi-tenant teams.
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  BLOCKED
+  COMPLETED
+  ARCHIVED
+}
+
+model Project {
+  id             String        @id @default(cuid())
+  organizationId String
+  ownerUserId    String?
+  name           String
+  code           String
+  description    String?
+  status         ProjectStatus @default(PLANNING)
+  startDate      DateTime?
+  dueDate        DateTime?
+  budget         Decimal?      @db.Decimal(18,2)
+  metadata       Json?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([organizationId, code])
+  @@index([organizationId, status])
+}
+
+model ProjectMember {
+  id          String   @id @default(cuid())
+  projectId   String
+  userId      String
+  roleKey     String?
+  allocation  Int      @default(100)
+  joinedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([projectId, userId])
+}
+
+model ProjectMilestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([projectId, name])
+  @@index([dueDate])
+}
+
+model ProjectRisk {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  severity    String   @default("medium")
+  probability Int      @default(50)
+  mitigation  String?
+  ownerUserId String?
+  status      String   @default("open")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId, status])
+}
+
+// Integration:
+// - Works with business/tasks for execution tracking
+// - Pair with core/rbac for project-level permissions via scopes
+// Notes:
+// - Soft delete entire projects via deletedAt when offboarding tenants
+// - Store risk matrices without creating extra tables by using severity/probability fields

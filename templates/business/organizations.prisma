@@ -1,0 +1,123 @@
+// Module: Business Organizations
+// Purpose: Defines the Organization aggregate plus invites, domains, and hierarchy primitives for multi-tenant SaaS.
+
+enum OrganizationStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETING
+}
+
+enum OrganizationTier {
+  FREE
+  STANDARD
+  PREMIUM
+  ENTERPRISE
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+model Organization {
+  id             String             @id @default(cuid())
+  name           String
+  slug           String
+  status         OrganizationStatus @default(ACTIVE)
+  tier           OrganizationTier   @default(STANDARD)
+  industry       String?
+  sizeRange      String?
+  billingEmail   String
+  supportEmail   String?
+  ownerUserId    String?
+  metadata       Json?
+  deletedAt      DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([slug])
+  @@index([ownerUserId])
+}
+
+model OrganizationProfile {
+  id              String   @id @default(cuid())
+  organizationId  String   @unique
+  mission         String?
+  values          String?
+  brandColor      String?
+  logoStorageKey  String?
+  links           Json?
+  complianceNotes Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model OrganizationDomain {
+  id              String   @id @default(cuid())
+  organizationId  String
+  domain          String
+  isPrimary       Boolean  @default(false)
+  verificationCode String
+  verifiedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([organizationId, domain])
+  @@index([domain])
+}
+
+model OrganizationInvite {
+  id              String           @id @default(cuid())
+  organizationId  String
+  email           String
+  roleKey         String?
+  inviterUserId   String?
+  token           String           @unique
+  status          InvitationStatus @default(PENDING)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([organizationId, email])
+  @@index([organizationId, status])
+}
+
+model OrganizationUnit {
+  id              String   @id @default(cuid())
+  organizationId  String
+  parentUnitId    String?
+  name            String
+  slug            String
+  path            String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, parentUnitId])
+}
+
+model Team {
+  id              String   @id @default(cuid())
+  organizationId  String
+  unitId          String?
+  name            String
+  slug            String
+  description     String?
+  leadUserId      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([unitId])
+}
+
+// Integration:
+// - Consumed by core/saas-multitenant and core/rbac for tenancy + memberships
+// - Referenced by downstream business modules (CRM, projects, tasks)
+// Notes:
+// - Soft delete entire organizations with deletedAt for GDPR requests
+// - Use OrganizationUnit path for efficient ancestor queries without recursive joins

@@ -1,0 +1,75 @@
+// Module: Content CMS
+// Purpose: Flexible headless CMS entries with locale-aware translations and scheduling.
+
+enum ContentEntryStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+model ContentEntry {
+  id             String              @id @default(cuid())
+  organizationId String
+  contentType    String
+  key            String
+  status         ContentEntryStatus  @default(DRAFT)
+  schemaVersion  Int                 @default(1)
+  authorUserId   String?
+  publishedAt    DateTime?
+  archivedAt     DateTime?
+  metadata       Json?
+  deletedAt      DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@unique([organizationId, contentType, key])
+  @@index([organizationId, status])
+}
+
+model ContentEntryTranslation {
+  id             String   @id @default(cuid())
+  entryId        String
+  locale         String
+  title          String?
+  slug           String?
+  summary        String?
+  body           Json?
+  seo            Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([entryId, locale])
+  @@unique([locale, slug])
+}
+
+model ContentEntryVersion {
+  id          String   @id @default(cuid())
+  entryId     String
+  version     Int
+  snapshot    Json
+  authorUserId String?
+  createdAt   DateTime @default(now())
+
+  @@unique([entryId, version])
+}
+
+model ContentEntrySchedule {
+  id            String   @id @default(cuid())
+  entryId       String
+  locale        String?
+  publishAt     DateTime
+  unpublishAt   DateTime?
+  createdByUserId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([entryId, publishAt])
+}
+
+// Integration:
+// - Couples with engagement/notifications for editorial workflows
+// - Aligns with infra/webhooks to push publish events downstream
+// Notes:
+// - Soft delete entries at the root to cascade removal of translations/schedules
+// - Use Json body to store structured PortableText/MDX payloads safely

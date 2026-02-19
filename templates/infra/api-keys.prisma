@@ -1,0 +1,58 @@
+// Module: Infra API Keys
+// Purpose: Issue, scope, and monitor API keys for programmatic access.
+
+enum ApiKeyStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+model ApiKey {
+  id             String      @id @default(cuid())
+  organizationId String
+  tenantId       String?
+  name           String
+  hashedKey      String      @unique
+  prefix         String
+  status         ApiKeyStatus @default(ACTIVE)
+  expiresAt      DateTime?
+  lastUsedAt     DateTime?
+  metadata       Json?
+  createdByUserId String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, status])
+  @@index([prefix])
+}
+
+model ApiKeyScope {
+  id        String   @id @default(cuid())
+  apiKeyId  String
+  resource  String
+  resourceId String?
+  permission String
+  createdAt DateTime @default(now())
+
+  @@unique([apiKeyId, resource, resourceId, permission])
+}
+
+model ApiKeyUsage {
+  id        String   @id @default(cuid())
+  apiKeyId  String
+  path      String
+  method    String
+  ipAddress String?
+  statusCode Int?
+  metadata  Json?
+  occurredAt DateTime @default(now())
+
+  @@index([apiKeyId, occurredAt])
+}
+
+// Integration:
+// - Coordinates with infra/rate-limit for throttling
+// - Works with core/audit-log for compliance reporting
+// Notes:
+// - Store only hashed keys; expose prefix for UX during revocation
+// - Scopes allow fine-grained grants without duplicating RBAC schema

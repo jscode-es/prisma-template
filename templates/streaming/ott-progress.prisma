@@ -1,0 +1,47 @@
+// Module: Streaming OTT Progress
+// Purpose: Track user playback progress, bookmarks, and devices across OTT clients.
+
+model PlaybackProgress {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  contentId      String
+  episodeId      String?
+  positionSeconds Int      @default(0)
+  durationSeconds Int?
+  completed      Boolean  @default(false)
+  lastPlayedAt   DateTime @default(now())
+  metadata       Json?
+
+  @@unique([userId, contentId, episodeId])
+  @@index([organizationId, lastPlayedAt])
+}
+
+model PlaybackBookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  contentId String
+  label     String?
+  positionSeconds Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, contentId, positionSeconds])
+}
+
+model PlaybackDevice {
+  id          String   @id @default(cuid())
+  userId      String
+  deviceId    String
+  platform    String
+  lastSeenAt  DateTime @default(now())
+  metadata    Json?
+
+  @@unique([userId, deviceId])
+}
+
+// Integration:
+// - Syncs with engagement/notifications for resume reminders
+// - Works with streaming/ott-entitlements to validate playback rights
+// Notes:
+// - Use metadata to store DRM session IDs or bitrate data for troubleshooting
+// - Completed flag set once user reaches threshold (e.g., 90%)

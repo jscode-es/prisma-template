@@ -1,0 +1,78 @@
+// Module: Engagement Moderation
+// Purpose: Content moderation queues, rules, and decisions for trust & safety teams.
+
+enum ModerationStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  ESCALATED
+}
+
+enum ModerationOutcome {
+  APPROVED
+  REJECTED
+  LIMITED
+  NEEDS_CHANGE
+}
+
+model ModerationRule {
+  id             String   @id @default(cuid())
+  organizationId String
+  code           String
+  name           String
+  severity       String   @default("medium")
+  config         Json
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, code])
+}
+
+model ModerationCase {
+  id             String            @id @default(cuid())
+  organizationId String
+  resource       String
+  resourceId     String
+  status         ModerationStatus  @default(OPEN)
+  priority       String            @default("normal")
+  ruleId         String?
+  reporterUserId String?
+  assigneeUserId String?
+  notes          Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([organizationId, status])
+  @@index([resource, resourceId])
+}
+
+model ModerationDecision {
+  id             String             @id @default(cuid())
+  caseId         String
+  outcome        ModerationOutcome
+  reason         String?
+  actorUserId    String?
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+
+  @@index([caseId])
+}
+
+model ModerationQueueEntry {
+  id             String   @id @default(cuid())
+  caseId         String
+  queueKey       String
+  score          Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  @@unique([caseId, queueKey])
+  @@index([queueKey, score])
+}
+
+// Integration:
+// - Works with engagement/comments and social modules for user-generated content
+// - Hooks into operations/support-ticketing for escalations
+// Notes:
+// - Cases remain immutable; decisions appended chronologically for audit
+// - queueKey allows specialized ML/manual queues per policy area

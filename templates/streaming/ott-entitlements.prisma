@@ -1,0 +1,74 @@
+// Module: Streaming OTT Entitlements
+// Purpose: Access policies, entitlements, and DRM licenses controlling user playback rights.
+
+enum EntitlementStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+  PENDING
+}
+
+model AccessPolicy {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  name           String
+  rules          Json
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, key])
+}
+
+model ContentPolicyRule {
+  id           String   @id @default(cuid())
+  accessPolicyId String
+  contentId    String?
+  region       String?
+  deviceType   String?
+  startAt      DateTime?
+  endAt        DateTime?
+  constraints  Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([accessPolicyId])
+}
+
+model Entitlement {
+  id             String            @id @default(cuid())
+  organizationId String
+  userId         String
+  contentId      String?
+  policyId       String
+  status         EntitlementStatus @default(PENDING)
+  source         String?
+  startsAt       DateTime?
+  expiresAt      DateTime?
+  metadata       Json?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([organizationId, userId, status])
+}
+
+model PlaybackLicense {
+  id             String   @id @default(cuid())
+  entitlementId  String
+  deviceId       String?
+  sessionId      String?
+  keyId          String?
+  issuedAt       DateTime @default(now())
+  expiresAt      DateTime?
+  response       Json?
+
+  @@index([entitlementId])
+}
+
+// Integration:
+// - Validates playback in streaming/ott-progress and ott-playlists
+// - Works with commerce/billing-subscriptions for entitlement grants
+// Notes:
+// - Entitlements remain even after expiry for auditing and royalty reporting
+// - AccessPolicy rules encoded as Json to avoid migrations when adding restrictions

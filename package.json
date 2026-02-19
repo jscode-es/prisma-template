@@ -1,0 +1,31 @@
+{
+  "name": "prisma-template",
+  "version": "0.1.0",
+  "description": "CLI para generar modelos de datos de Prisma con plantillas y modo interactivo.",
+  "bin": {
+    "prisma-template": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "prisma",
+    "cli",
+    "template",
+    "generator"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "inquirer": "^9.2.16"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^9.0.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

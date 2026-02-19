@@ -1,0 +1,56 @@
+// Module: Engagement Comments
+// Purpose: Comment threads with hierarchical replies suitable for any resource.
+
+enum CommentStatus {
+  VISIBLE
+  PENDING_REVIEW
+  HIDDEN
+  DELETED
+}
+
+model CommentThread {
+  id             String   @id @default(cuid())
+  organizationId String
+  resource       String
+  resourceId     String
+  title          String?
+  locked         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, resource, resourceId])
+}
+
+model Comment {
+  id             String        @id @default(cuid())
+  threadId       String
+  parentCommentId String?
+  userId         String?
+  body           String
+  status         CommentStatus  @default(VISIBLE)
+  metadata       Json?
+  deletedAt      DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([threadId, status])
+  @@index([parentCommentId])
+}
+
+model CommentReaction {
+  id        String @id @default(cuid())
+  commentId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId, emoji])
+  @@index([commentId])
+}
+
+// Integration:
+// - Ties to engagement/moderation for policy enforcement
+// - Works with engagement/notifications for mention + reply alerts
+// Notes:
+// - Soft delete by toggling status/deletedAt while keeping audit trails
+// - Resource/resourceId combo lets any module own comment threads

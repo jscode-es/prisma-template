@@ -1,0 +1,68 @@
+// Module: Commerce Credits & Usage
+// Purpose: Tracks prepaid credit grants, debits, and balance snapshots for consumption-based pricing.
+
+enum CreditReason {
+  PROMOTION
+  PURCHASE
+  ADJUSTMENT
+  REFUND
+  USAGE
+}
+
+model CreditLedger {
+  id             String   @id @default(cuid())
+  organizationId String
+  tenantId       String?
+  currency       String   @default("USD")
+  totalGranted   Decimal  @default(0) @db.Decimal(18,4)
+  totalDebited   Decimal  @default(0) @db.Decimal(18,4)
+  balance        Decimal  @default(0) @db.Decimal(18,4)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, tenantId])
+}
+
+model CreditGrant {
+  id             String      @id @default(cuid())
+  ledgerId       String
+  amount         Decimal     @db.Decimal(18,4)
+  currency       String      @default("USD")
+  reason         CreditReason @default(PROMOTION)
+  reference      String?
+  expiresAt      DateTime?
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+
+  @@index([ledgerId])
+}
+
+model CreditDebit {
+  id          String      @id @default(cuid())
+  ledgerId    String
+  amount      Decimal     @db.Decimal(18,4)
+  currency    String      @default("USD")
+  reason      CreditReason @default(USAGE)
+  reference   String?
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+
+  @@index([ledgerId])
+}
+
+model CreditBalanceSnapshot {
+  id        String   @id @default(cuid())
+  ledgerId  String
+  balance   Decimal  @db.Decimal(18,4)
+  takenAt   DateTime @default(now())
+  metadata  Json?
+
+  @@index([ledgerId, takenAt])
+}
+
+// Integration:
+// - Works with commerce/billing-subscriptions for overage billing
+// - Feeds engagement/notifications for low-balance alerts
+// Notes:
+// - Ledger balance should be updated using transactional SQL to avoid race conditions
+// - Use snapshots for historical reporting or reconstruct balances after incidents

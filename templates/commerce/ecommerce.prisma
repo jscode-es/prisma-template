@@ -1,0 +1,163 @@
+// Module: Commerce eCommerce
+// Purpose: Direct-to-consumer commerce primitives (catalog, carts, orders, inventory).
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  DISCONTINUED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  FULFILLED
+  CANCELLED
+  REFUNDED
+}
+
+enum FulfillmentStatus {
+  UNFULFILLED
+  PARTIALLY_FULFILLED
+  FULFILLED
+  RETURNED
+}
+
+model Product {
+  id             String        @id @default(cuid())
+  organizationId String
+  title          String
+  slug           String
+  description    String?
+  status         ProductStatus @default(DRAFT)
+  currency       String        @default("USD")
+  metadata       Json?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([organizationId, slug])
+}
+
+model ProductVariant {
+  id             String   @id @default(cuid())
+  productId      String
+  sku            String
+  title          String?
+  price          Decimal @db.Decimal(18,2)
+  currency       String  @default("USD")
+  attributes     Json?
+  weightGrams    Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([productId, sku])
+  @@index([sku])
+}
+
+model InventoryItem {
+  id             String   @id @default(cuid())
+  organizationId String
+  variantId      String
+  locationId     String?
+  quantity       Int      @default(0)
+  safetyStock    Int      @default(0)
+  reserved       Int      @default(0)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, variantId, locationId])
+}
+
+model Cart {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  tenantId       String?
+  currency       String   @default("USD")
+  subtotal       Decimal  @default(0) @db.Decimal(18,2)
+  discountTotal  Decimal  @default(0) @db.Decimal(18,2)
+  taxTotal       Decimal  @default(0) @db.Decimal(18,2)
+  expiresAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  variantId String
+  quantity  Int      @default(1)
+  unitPrice Decimal  @db.Decimal(18,2)
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, variantId])
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  organizationId String
+  tenantId       String?
+  userId         String?
+  orderNumber    String
+  currency       String      @default("USD")
+  subtotal       Decimal     @db.Decimal(18,2)
+  discountTotal  Decimal     @default(0) @db.Decimal(18,2)
+  taxTotal       Decimal     @default(0) @db.Decimal(18,2)
+  total          Decimal     @db.Decimal(18,2)
+  status         OrderStatus @default(PENDING)
+  fulfillmentStatus FulfillmentStatus @default(UNFULFILLED)
+  billingAddress Json?
+  shippingAddress Json?
+  placedAt       DateTime    @default(now())
+  cancelledAt    DateTime?
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@unique([organizationId, orderNumber])
+  @@index([userId])
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String
+  variantId   String
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(18,2)
+  currency    String   @default("USD")
+  total       Decimal  @db.Decimal(18,2)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Shipment {
+  id             String   @id @default(cuid())
+  orderId        String
+  carrier        String?
+  trackingNumber String?
+  status         FulfillmentStatus @default(UNFULFILLED)
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([trackingNumber])
+}
+
+// Integration:
+// - Feeds commerce/payments for PaymentIntent and Charge reconciliation
+// - Works with infra/rate-limit for checkout abuse prevention
+// Notes:
+// - Soft delete products to preserve order history referencing them
+// - Price fields use Decimal(18,2) for ISO currency compatibility

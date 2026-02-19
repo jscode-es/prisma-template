@@ -1,0 +1,76 @@
+// Module: Content Documentation
+// Purpose: Structured developer documentation with versioning, localization, and hierarchical sections.
+
+enum DocPageStatus {
+  DRAFT
+  READY
+  PUBLISHED
+  DEPRECATED
+}
+
+model DocVersion {
+  id             String   @id @default(cuid())
+  organizationId String
+  productKey     String
+  version        String
+  isStable       Boolean  @default(false)
+  releaseDate    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, productKey, version])
+}
+
+model DocSection {
+  id             String   @id @default(cuid())
+  organizationId String
+  slug           String
+  title          String
+  order          Int      @default(0)
+  parentSectionId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([parentSectionId])
+}
+
+model DocPage {
+  id             String        @id @default(cuid())
+  organizationId String
+  sectionId      String?
+  versionId      String
+  status         DocPageStatus @default(DRAFT)
+  key            String
+  order          Int           @default(0)
+  ownerUserId    String?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([versionId, key])
+  @@index([organizationId, status])
+}
+
+model DocPageTranslation {
+  id        String   @id @default(cuid())
+  pageId    String
+  locale    String
+  title     String
+  slug      String
+  summary   String?
+  content   Json
+  seo       Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([pageId, locale])
+  @@unique([locale, slug])
+}
+
+// Integration:
+// - Connects to operations/support-ticketing for contextual help links
+// - Works with streaming/ott-content for developer portal docs when distributing APIs
+// Notes:
+// - Soft delete doc pages at root while keeping translations for rollback
+// - Order + parent relationships enable nested sidebars without recursive CTEs

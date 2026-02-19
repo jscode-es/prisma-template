@@ -1,0 +1,78 @@
+// Module: Content Knowledge Base
+// Purpose: Support portals with categorized, localized articles and attachments.
+
+enum KnowledgeArticleStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  RETIRED
+}
+
+model KnowledgeCategory {
+  id             String   @id @default(cuid())
+  organizationId String
+  parentCategoryId String?
+  name           String
+  slug           String
+  description    String?
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([parentCategoryId])
+}
+
+model KnowledgeArticle {
+  id             String                  @id @default(cuid())
+  organizationId String
+  categoryId     String?
+  status         KnowledgeArticleStatus  @default(DRAFT)
+  authorUserId   String?
+  reviewerUserId String?
+  helpfulCount   Int                     @default(0)
+  notHelpfulCount Int                    @default(0)
+  publishedAt    DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([organizationId, status])
+}
+
+model KnowledgeArticleTranslation {
+  id        String   @id @default(cuid())
+  articleId String
+  locale    String
+  title     String
+  slug      String
+  excerpt   String?
+  content   Json
+  seo       Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([articleId, locale])
+  @@unique([locale, slug])
+}
+
+model KnowledgeAttachment {
+  id          String   @id @default(cuid())
+  articleId   String
+  storageKey  String
+  filename    String
+  mimeType    String
+  size        Int
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([articleId])
+}
+
+// Integration:
+// - Surfaces through operations/support-ticketing for agent deflection
+// - Shares taxonomy with content/cms-content when knowledge entries double as docs
+// Notes:
+// - Soft delete articles root-level to retain helpfulness metrics historically
+// - Keep attachments normalized for S3-like storage and dedupe by checksum if needed

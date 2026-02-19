@@ -1,0 +1,76 @@
+// Module: Operations Booking
+// Purpose: Resource scheduling for appointments, rooms, or equipment.
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Resource {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  capacity       Int      @default(1)
+  type           String?
+  location       String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+}
+
+model AvailabilityWindow {
+  id          String   @id @default(cuid())
+  resourceId  String
+  weekday     Int      @default(1)
+  startTime   String
+  endTime     String
+  timezone    String   @default("UTC")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([resourceId, weekday, startTime, endTime])
+}
+
+model BlackoutDate {
+  id          String   @id @default(cuid())
+  resourceId  String
+  startsAt    DateTime
+  endsAt      DateTime
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  @@index([resourceId, startsAt])
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  organizationId String
+  resourceId     String
+  userId         String?
+  tenantId       String?
+  status         BookingStatus  @default(PENDING)
+  scheduledStart DateTime
+  scheduledEnd   DateTime
+  notes          String?
+  metadata       Json?
+  cancelledAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId, status])
+  @@index([resourceId, scheduledStart])
+}
+
+// Integration:
+// - Sync with commerce/payments for prepaid bookings
+// - Use engagement/notifications for reminders
+// Notes:
+// - Availability windows store weekday/time strings to avoid timezone drift
+// - Soft cancellation tracked through status + cancelledAt

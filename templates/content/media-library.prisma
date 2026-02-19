@@ -1,0 +1,77 @@
+// Module: Content Media Library
+// Purpose: S3-like asset management with folders, file versions, and secure sharing controls.
+
+enum MediaAccess {
+  PRIVATE
+  ORGANIZATION
+  PUBLIC
+}
+
+model MediaFolder {
+  id             String   @id @default(cuid())
+  organizationId String
+  parentFolderId String?
+  name           String
+  path           String
+  createdByUserId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, path])
+}
+
+model MediaFile {
+  id             String      @id @default(cuid())
+  organizationId String
+  folderId       String?
+  ownerUserId    String?
+  name           String
+  mimeType       String
+  size           Int
+  checksum       String
+  storageKey     String
+  access         MediaAccess @default(PRIVATE)
+  variants       Json?
+  metadata       Json?
+  deletedAt      DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@unique([organizationId, storageKey])
+  @@index([folderId])
+  @@index([organizationId, checksum])
+}
+
+model MediaFileVariant {
+  id          String   @id @default(cuid())
+  fileId      String
+  format      String
+  storageKey  String
+  size        Int
+  width       Int?
+  height      Int?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([fileId, format])
+}
+
+model MediaFileShare {
+  id            String   @id @default(cuid())
+  fileId        String
+  token         String   @unique
+  expiresAt     DateTime?
+  maxDownloads  Int?
+  downloadCount Int      @default(0)
+  createdByUserId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Integration:
+// - Backing store for blog/lms/cms hero media and document attachments
+// - Works with infra/webhooks for signed URL callbacks
+// Notes:
+// - Soft delete files to support restore flows and delayed hard deletion
+// - Use checksum + organization index for dedupe and malware scanning pipelines

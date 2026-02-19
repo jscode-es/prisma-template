@@ -1,0 +1,40 @@
+// Module: Core Audit Log
+// Purpose: Records immutable audit events for compliance, incident response, and analytics.
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String?
+  tenantId       String?
+  actorUserId    String?
+  actorEmail     String?
+  action         String
+  resource       String
+  resourceId     String?
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json?
+  correlationId  String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([resource, resourceId])
+  @@index([actorUserId])
+}
+
+model AuditLogIngestionCursor {
+  id          String   @id @default(cuid())
+  source      String
+  cursor      String
+  lastEventAt DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([source])
+}
+
+// Integration:
+// - Emits from every module; particularly auth, payments, and infra/webhooks
+// - Tie into analytics-events for centralized observability
+// Notes:
+// - Append-only semantics; never update AuditLog rows after insert
+// - Partition large tables by day/week in Postgres for long-term retention

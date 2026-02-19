@@ -1,0 +1,71 @@
+// Module: Engagement Social
+// Purpose: Social graph primitives (profiles, follows, shares) for community features.
+
+enum FollowStatus {
+  REQUESTED
+  ACTIVE
+  BLOCKED
+}
+
+model SocialProfile {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  handle         String
+  bio            String?
+  avatarKey      String?
+  links          Json?
+  visibility     String   @default("public")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, handle])
+  @@unique([organizationId, userId])
+}
+
+model Follow {
+  id             String       @id @default(cuid())
+  organizationId String
+  followerUserId String
+  followeeUserId String
+  status         FollowStatus @default(REQUESTED)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, followerUserId, followeeUserId])
+  @@index([followeeUserId])
+}
+
+model SocialConnection {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  provider       String
+  providerUserId String
+  data           Json?
+  syncedAt       DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, provider, providerUserId])
+}
+
+model SocialShare {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  resource       String
+  resourceId     String
+  channel        String
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, resource, resourceId])
+}
+
+// Integration:
+// - Works with engagement/reactions and comments for UGC loops
+// - Connects to operations/support-ticketing for abuse reporting from follows
+// Notes:
+// - Handle uniqueness enforced per org for vanity URLs
+// - Blocked follows retained to prevent abuse re-requests

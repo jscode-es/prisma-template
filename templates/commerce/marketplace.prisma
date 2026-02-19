@@ -1,0 +1,118 @@
+// Module: Commerce Marketplace
+// Purpose: Two-sided marketplace models for vendors, listings, and settlement.
+
+enum VendorStatus {
+  ONBOARDING
+  ACTIVE
+  SUSPENDED
+  OFFBOARDED
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  RETIRED
+}
+
+enum OfferStatus {
+  OPEN
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum PayoutStatus {
+  PENDING
+  IN_TRANSIT
+  PAID
+  FAILED
+}
+
+model MarketplaceVendor {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  status         VendorStatus @default(ONBOARDING)
+  contactEmail   String
+  contactPhone   String?
+  onboardingData Json?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([status])
+}
+
+model MarketplaceListing {
+  id             String        @id @default(cuid())
+  organizationId String
+  vendorId       String
+  title          String
+  slug           String
+  description    String?
+  status         ListingStatus @default(DRAFT)
+  basePrice      Decimal       @db.Decimal(18,2)
+  currency       String        @default("USD")
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([vendorId, status])
+}
+
+model MarketplaceListingVariant {
+  id         String   @id @default(cuid())
+  listingId  String
+  sku        String
+  attributes Json?
+  price      Decimal  @db.Decimal(18,2)
+  inventory  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([listingId, sku])
+}
+
+model MarketplaceOffer {
+  id             String      @id @default(cuid())
+  organizationId String
+  listingId      String
+  buyerUserId    String?
+  price          Decimal     @db.Decimal(18,2)
+  currency       String      @default("USD")
+  status         OfferStatus @default(OPEN)
+  expiresAt      DateTime?
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([listingId, status])
+}
+
+model MarketplacePayout {
+  id             String       @id @default(cuid())
+  organizationId String
+  vendorId       String
+  amount         Decimal      @db.Decimal(18,2)
+  currency       String       @default("USD")
+  status         PayoutStatus @default(PENDING)
+  periodStart    DateTime
+  periodEnd      DateTime
+  transferReference String?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([vendorId, status])
+}
+
+// Integration:
+// - Coordinates with commerce/invoicing for vendor settlement statements
+// - Hooks into infra/webhooks for payout status webhooks
+// Notes:
+// - Keep offers immutable after acceptance for auditability
+// - Use vendor slug for marketplace storefront URLs

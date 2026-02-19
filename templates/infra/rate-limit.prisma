@@ -1,0 +1,57 @@
+// Module: Infra Rate Limit
+// Purpose: Policy-driven rate limiting with counters and rolling windows.
+
+enum RateLimitStrategy {
+  FIXED_WINDOW
+  SLIDING_WINDOW
+  TOKEN_BUCKET
+}
+
+model RateLimitPolicy {
+  id             String            @id @default(cuid())
+  organizationId String
+  key            String
+  description    String?
+  strategy       RateLimitStrategy @default(SLIDING_WINDOW)
+  limit          Int
+  intervalSeconds Int              @default(60)
+  dimensions     Json?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([organizationId, key])
+}
+
+model RateLimitCounter {
+  id          String   @id @default(cuid())
+  policyId    String
+  tenantId    String?
+  userId      String?
+  apiKeyId    String?
+  windowStart DateTime
+  windowEnd   DateTime
+  count       Int      @default(0)
+  metadata    Json?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@unique([policyId, tenantId, userId, apiKeyId, windowStart])
+  @@index([windowEnd])
+}
+
+model RateLimitWindowEvent {
+  id         String   @id @default(cuid())
+  counterId  String
+  occurredAt DateTime @default(now())
+  weight     Int      @default(1)
+  metadata   Json?
+
+  @@index([counterId, occurredAt])
+}
+
+// Integration:
+// - Works alongside infra/api-keys and auth sessions for throttling
+// - Feed counters to infra/telemetry for monitoring saturation
+// Notes:
+// - Dimensions Json can capture custom keys (IP, endpoint) without schema churn
+// - Sliding window events enable precise enforcement beyond fixed intervals

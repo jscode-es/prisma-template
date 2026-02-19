@@ -1,0 +1,110 @@
+// Module: Business CRM
+// Purpose: Customer relationship management primitives (contacts, companies, leads, interactions).
+
+enum LeadStatus {
+  NEW
+  WORKING
+  QUALIFIED
+  UNQUALIFIED
+  CONVERTED
+}
+
+enum ContactSource {
+  MANUAL
+  IMPORT
+  WEB_FORM
+  EVENT
+  PARTNER
+}
+
+enum InteractionChannel {
+  EMAIL
+  PHONE
+  MEETING
+  CHAT
+  NOTE
+}
+
+model CrmContact {
+  id             String        @id @default(cuid())
+  organizationId String
+  ownerUserId    String?
+  companyId      String?
+  email          String
+  phone          String?
+  firstName      String
+  lastName       String
+  title          String?
+  source         ContactSource @default(MANUAL)
+  tags           String?
+  properties     Json?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([organizationId, email])
+  @@index([companyId])
+  @@index([ownerUserId])
+}
+
+model CrmCompany {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  domain         String?
+  industry       String?
+  size           String?
+  annualRevenue  Int?
+  ownerUserId    String?
+  properties     Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([organizationId, domain])
+}
+
+model CrmLead {
+  id             String     @id @default(cuid())
+  organizationId String
+  contactId      String?
+  companyId      String?
+  status         LeadStatus @default(NEW)
+  score          Int        @default(0)
+  ownerUserId    String?
+  source         ContactSource
+  notes          String?
+  metadata       Json?
+  convertedDealId String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([organizationId, status])
+  @@index([contactId])
+}
+
+model CrmInteraction {
+  id             String             @id @default(cuid())
+  organizationId String
+  contactId      String?
+  companyId      String?
+  userId         String?
+  channel        InteractionChannel @default(NOTE)
+  subject        String?
+  body           String?
+  occurredAt     DateTime
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([organizationId, occurredAt])
+  @@index([contactId])
+  @@index([companyId])
+}
+
+// Integration:
+// - Augments business/sales-pipeline for opportunity handoff
+// - Links to engagement/notifications for follow-ups and reminders
+// Notes:
+// - Soft delete contacts when GDPR/CCPA erasure required
+// - Store arbitrary CRM fields inside properties Json without altering schema

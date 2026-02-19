@@ -1,0 +1,85 @@
+// Module: Infra Devices & IoT
+// Purpose: Device registry with credentials, firmware, telemetry heartbeats, and command queueing.
+
+enum DeviceStatus {
+  PROVISIONING
+  ACTIVE
+  DISCONNECTED
+  RETIRED
+}
+
+model Device {
+  id             String       @id @default(cuid())
+  organizationId String
+  tenantId       String?
+  serialNumber   String
+  status         DeviceStatus @default(PROVISIONING)
+  model          String?
+  firmwareVersion String?
+  tags           Json?
+  lastSeenAt     DateTime?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, serialNumber])
+}
+
+model DeviceCredential {
+  id           String   @id @default(cuid())
+  deviceId     String
+  type         String   @default("symmetric_key")
+  hashedSecret String
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  rotatedAt    DateTime?
+
+  @@unique([deviceId, type])
+}
+
+model DeviceHeartbeat {
+  id          String   @id @default(cuid())
+  deviceId    String
+  status      DeviceStatus
+  ipAddress   String?
+  signal      Int?
+  payload     Json?
+  reportedAt  DateTime @default(now())
+
+  @@index([deviceId, reportedAt])
+}
+
+model DeviceFirmware {
+  id             String   @id @default(cuid())
+  organizationId String
+  model          String
+  version        String
+  storageKey     String
+  checksum       String
+  releaseNotes   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, model, version])
+}
+
+model DeviceCommand {
+  id          String   @id @default(cuid())
+  deviceId    String
+  command     String
+  payload     Json?
+  status      String   @default("queued")
+  queuedAt    DateTime @default(now())
+  sentAt      DateTime?
+  acknowledgedAt DateTime?
+  metadata    Json?
+
+  @@index([deviceId, status])
+}
+
+// Integration:
+// - Works with infra/telemetry for long-term metrics
+// - Connects to operations/booking when devices represent rentable assets
+// Notes:
+// - Store only hashed credentials; rotate regularly via DeviceCredential rows
+// - Firmware references S3-like storage via storageKey for OTA pipelines

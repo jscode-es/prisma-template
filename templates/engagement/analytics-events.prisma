@@ -1,0 +1,55 @@
+// Module: Engagement Analytics Events
+// Purpose: Event ingestion tables for behavioral analytics and product telemetry.
+
+model EventSession {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  anonymousId    String?
+  ipAddress      String?
+  userAgent      String?
+  locale         String?
+  startedAt      DateTime @default(now())
+  endedAt        DateTime?
+  metadata       Json?
+
+  @@index([organizationId, userId])
+}
+
+model Event {
+  id             String   @id @default(cuid())
+  organizationId String
+  sessionId      String?
+  userId         String?
+  anonymousId    String?
+  name           String
+  source         String?
+  properties     Json?
+  insertedAt     DateTime @default(now())
+  occurredAt     DateTime
+  ingestionKey   String?
+
+  @@index([organizationId, occurredAt])
+  @@index([sessionId])
+  @@index([name])
+}
+
+model EventPropertyDefinition {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  type           String
+  description    String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, key])
+}
+
+// Integration:
+// - Consumes signals from feature-flags, ab-testing, and OTT playback modules
+// - Feeds infra/telemetry for cross-system observability
+// Notes:
+// - Keep ingestionKey for deduplication when replaying events from warehouses
+// - sessions optional to support server-side events with only anonymousId

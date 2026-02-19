@@ -1,0 +1,83 @@
+// Module: Streaming OTT Playlists
+// Purpose: Linear channels, schedules, and on-demand playlists for OTT services.
+
+enum ChannelType {
+  LINEAR
+  FAST
+  LIVE_EVENT
+}
+
+model Channel {
+  id             String     @id @default(cuid())
+  organizationId String
+  key            String
+  name           String
+  type           ChannelType @default(LINEAR)
+  timezone       String      @default("UTC")
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@unique([organizationId, key])
+}
+
+model Program {
+  id           String   @id @default(cuid())
+  channelId    String
+  contentId    String
+  title        String?
+  description  String?
+  durationSeconds Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([channelId])
+}
+
+model ScheduleItem {
+  id          String   @id @default(cuid())
+  channelId   String
+  programId   String
+  startsAt    DateTime
+  endsAt      DateTime
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([channelId, startsAt])
+}
+
+model Playlist {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  name           String
+  type           String   @default("on_demand")
+  metadata       Json?
+  createdByUserId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, key])
+}
+
+model PlaylistEntry {
+  id          String   @id @default(cuid())
+  playlistId  String
+  contentId   String
+  order       Int      @default(0)
+  startsAt    DateTime?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([playlistId, contentId])
+  @@index([playlistId, order])
+}
+
+// Integration:
+// - Connects to streaming/ott-content for content metadata
+// - Works with streaming/ott-ads for ad insertion scheduling
+// Notes:
+// - Keep playlists generic to support both FAST channels and curated rows
+// - Use metadata Json for EPG-specific data such as parental ratings per slot

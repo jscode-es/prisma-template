@@ -1,0 +1,145 @@
+// Module: Streaming OTT Content
+// Purpose: Catalog metadata for movies/series with seasons, episodes, genres, cast, and artwork.
+
+enum ContentStatus {
+  DRAFT
+  SCHEDULED
+  LIVE
+  ARCHIVED
+}
+
+enum ContentRating {
+  G
+  PG
+  PG13
+  R
+  NC17
+  TVY
+  TVY7
+  TVPG
+  TV14
+  TVMA
+}
+
+enum ArtworkType {
+  POSTER
+  BACKDROP
+  THUMBNAIL
+  LOGO
+}
+
+model OttContent {
+  id             String        @id @default(cuid())
+  organizationId String
+  type           String        @default("series")
+  title          String
+  slug           String
+  synopsis       String?
+  rating         ContentRating?
+  status         ContentStatus  @default(DRAFT)
+  runtimeMinutes Int?
+  releaseDate    DateTime?
+  metadata       Json?
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([status])
+}
+
+model OttSeason {
+  id          String   @id @default(cuid())
+  contentId   String
+  number      Int
+  title       String?
+  synopsis    String?
+  releaseDate DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([contentId, number])
+}
+
+model OttEpisode {
+  id             String   @id @default(cuid())
+  contentId      String
+  seasonId       String?
+  number         Int
+  title          String
+  synopsis       String?
+  durationSeconds Int?
+  airDate        DateTime?
+  playbackAsset  Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([contentId, number])
+  @@index([seasonId, number])
+}
+
+model OttGenre {
+  id             String   @id @default(cuid())
+  organizationId String
+  slug           String
+  name           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+}
+
+model OttContentGenre {
+  id        String @id @default(cuid())
+  contentId String
+  genreId   String
+
+  @@unique([contentId, genreId])
+  @@index([genreId])
+}
+
+model OttCastMember {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  role           String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+}
+
+model OttContentCast {
+  id           String @id @default(cuid())
+  contentId    String
+  castMemberId String
+  character    String?
+  billingOrder Int?
+  createdAt    DateTime @default(now())
+
+  @@unique([contentId, castMemberId])
+}
+
+model OttArtwork {
+  id          String      @id @default(cuid())
+  contentId   String
+  type        ArtworkType @default(POSTER)
+  storageKey  String
+  mimeType    String
+  width       Int?
+  height      Int?
+  focalPoint  Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([contentId, type])
+}
+
+// Integration:
+// - Feeds streaming/ott-playlists for scheduling and channel programming
+// - Works with media-library for artwork storage references
+// Notes:
+// - Soft delete contents at root; keep episodes intact for analytics/backfill
+// - playbackAsset Json can store DRM, CDN URLs, or bitrate ladders

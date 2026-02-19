@@ -1,0 +1,181 @@
+// Module: Core Authentication
+// Purpose: Provides reusable authentication primitives (credentials, OAuth, MFA, sessions) for Prisma + Postgres stacks.
+
+enum AuthProviderType {
+  PASSWORD
+  OAUTH
+  PASSWORDLESS
+}
+
+enum MfaFactorType {
+  TOTP
+  SMS
+  WEBAUTHN
+  BACKUP_CODE
+}
+
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum TrustedDeviceStatus {
+  TRUSTED
+  BLOCKED
+  REVOKED
+}
+
+model AuthCredential {
+  id              String   @id @default(cuid())
+  organizationId  String?
+  userId          String
+  email           String
+  passwordHash    String
+  passwordVersion Int      @default(1)
+  mfaRequired     Boolean  @default(false)
+  lastSignInAt    DateTime?
+  failedAttempts  Int      @default(0)
+  lockedAt        DateTime?
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([organizationId, email])
+  @@index([userId])
+}
+
+model Account {
+  id                     String           @id @default(cuid())
+  organizationId         String?
+  userId                 String
+  provider               String
+  providerType           AuthProviderType
+  providerAccountId      String
+  accessToken            String?
+  refreshToken           String?
+  providerMetadata       Json?
+  scopes                 String?
+  expiresAt              DateTime?
+  lastSyncAt             DateTime?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([organizationId, provider])
+}
+
+model Session {
+  id             String        @id @default(cuid())
+  organizationId String?
+  userId         String
+  sessionToken   String        @unique
+  status         SessionStatus @default(ACTIVE)
+  ipAddress      String?
+  userAgent      String?
+  expiresAt      DateTime
+  refreshedAt    DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId, userId])
+}
+
+model RefreshToken {
+  id             String   @id @default(cuid())
+  userId         String
+  sessionId      String
+  hashedToken    String   @unique
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model EmailVerificationToken {
+  id          String   @id @default(cuid())
+  userId      String
+  email       String
+  token       String   @unique
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, email])
+}
+
+model PasswordResetToken {
+  id          String   @id @default(cuid())
+  userId      String
+  email       String
+  token       String   @unique
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model MfaFactor {
+  id               String        @id @default(cuid())
+  userId           String
+  type             MfaFactorType
+  secret           String?
+  phoneNumber      String?
+  webauthnPublicKey String?
+  enabled          Boolean       @default(true)
+  lastVerifiedAt   DateTime?
+  backupCodes      String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([userId, type])
+}
+
+model MfaChallenge {
+  id          String   @id @default(cuid())
+  factorId    String
+  userId      String
+  code        String
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([factorId])
+  @@index([userId])
+}
+
+model TrustedDevice {
+  id              String              @id @default(cuid())
+  userId          String
+  organizationId  String?
+  deviceId        String
+  devicePublicKey String?
+  displayName     String?
+  status          TrustedDeviceStatus @default(TRUSTED)
+  lastUsedAt      DateTime?
+  ipAddress       String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([userId, deviceId])
+  @@index([organizationId, userId])
+}
+
+// Integration:
+// - Requires User model from identity.prisma
+// - Coordinates with core/rbac for membership-scoped sessions
+// Notes:
+// - Soft delete tokens by setting revoked/consumed timestamps instead of physical removal
+// - Store hashed session/refresh tokens when stricter security is desired

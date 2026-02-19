@@ -1,0 +1,36 @@
+// Module: Engagement Reactions
+// Purpose: Generic emoji/button reactions with aggregates for any resource.
+
+model Reaction {
+  id             String   @id @default(cuid())
+  organizationId String
+  resource       String
+  resourceId     String
+  userId         String
+  emoji          String
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, resource, resourceId, userId, emoji])
+  @@index([resource, resourceId])
+}
+
+model ReactionAggregate {
+  id             String   @id @default(cuid())
+  organizationId String
+  resource       String
+  resourceId     String
+  emoji          String
+  total          Int      @default(0)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, resource, resourceId, emoji])
+}
+
+// Integration:
+// - Works with engagement/comments and social shares for richer feedback loops
+// - Feeds analytics-events for engagement dashboards
+// Notes:
+// - Aggregates should be updated transactionally with base reactions
+// - Keep emoji column free-form to allow Unicode or custom codes

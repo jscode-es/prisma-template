@@ -1,0 +1,124 @@
+// Module: Commerce Billing & Subscriptions
+// Purpose: SaaS billing primitives for plans, prices, subscriptions, and metered usage.
+
+enum BillingInterval {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+}
+
+enum UsageAggregation {
+  SUM
+  MAX
+  LAST_DURING_PERIOD
+}
+
+model Plan {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  name           String
+  description    String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, key])
+}
+
+model Price {
+  id             String        @id @default(cuid())
+  planId         String
+  currency       String        @default("USD")
+  amount         Decimal?      @db.Decimal(18,2)
+  billingInterval BillingInterval @default(MONTH)
+  intervalCount  Int            @default(1)
+  trialDays      Int?           @default(0)
+  usageType      String         @default("licensed")
+  tiers          Json?
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([planId])
+}
+
+model Subscription {
+  id             String             @id @default(cuid())
+  organizationId String
+  tenantId       String?
+  customerId     String?
+  planId         String
+  priceId        String
+  status         SubscriptionStatus @default(TRIALING)
+  quantity       Int                @default(1)
+  currency       String             @default("USD")
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean        @default(false)
+  canceledAt      DateTime?
+  trialEndsAt     DateTime?
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([organizationId, status])
+  @@index([tenantId])
+}
+
+model SubscriptionItem {
+  id               String   @id @default(cuid())
+  subscriptionId   String
+  priceId          String
+  quantity         Int      @default(1)
+  usageAggregation UsageAggregation @default(SUM)
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([subscriptionId, priceId])
+}
+
+model UsageRecord {
+  id               String   @id @default(cuid())
+  subscriptionItemId String
+  timestamp        DateTime
+  value            Decimal  @db.Decimal(18,4)
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  @@index([subscriptionItemId, timestamp])
+}
+
+model SubscriptionInvoice {
+  id               String   @id @default(cuid())
+  subscriptionId   String
+  periodStart      DateTime
+  periodEnd        DateTime
+  subtotal         Decimal  @db.Decimal(18,2)
+  taxTotal         Decimal  @default(0) @db.Decimal(18,2)
+  total            Decimal  @db.Decimal(18,2)
+  currency         String   @default("USD")
+  status           String   @default("draft")
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([subscriptionId])
+}
+
+// Integration:
+// - Aligns with core/saas-multitenant for tenant provisioning
+// - Works with commerce/payments for actual charge capture
+// Notes:
+// - Usage records stored with Decimal(18,4) to support precise metering
+// - Invoice table keeps computed totals for analytics and reconciliation

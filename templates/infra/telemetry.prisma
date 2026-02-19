@@ -1,0 +1,70 @@
+// Module: Infra Telemetry
+// Purpose: Unified observability store for metrics, logs, and distributed traces.
+
+enum LogSeverity {
+  TRACE
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  FATAL
+}
+
+model MetricSeries {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  unit           String?
+  labels         Json?
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, key])
+}
+
+model MetricSample {
+  id           String   @id @default(cuid())
+  seriesId     String
+  value        Decimal  @db.Decimal(18,6)
+  recordedAt   DateTime @default(now())
+  labels       Json?
+
+  @@index([seriesId, recordedAt])
+}
+
+model LogEntry {
+  id             String     @id @default(cuid())
+  organizationId String
+  tenantId       String?
+  traceId        String?
+  spanId         String?
+  severity       LogSeverity @default(INFO)
+  message        String
+  context        Json?
+  timestamp      DateTime    @default(now())
+
+  @@index([organizationId, timestamp])
+  @@index([traceId])
+}
+
+model TraceSpan {
+  id             String   @id @default(cuid())
+  traceId        String
+  spanId         String
+  parentSpanId   String?
+  name           String
+  service        String
+  durationMs     Int
+  attributes     Json?
+  startedAt      DateTime @default(now())
+  endedAt        DateTime?
+
+  @@unique([traceId, spanId])
+  @@index([service])
+}
+
+// Integration:
+// - Aggregates metrics from feature flags, OTT streaming, and IoT devices
+// - Works with analytics-events for correlated BI pipelines
+// Notes:
+// - Keep Decimal precision for high-resolution metrics (p95 latencies, etc.)
+// - Use traceId/spanId to connect logs and spans for distributed tracing

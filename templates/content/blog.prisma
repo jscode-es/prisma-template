@@ -1,0 +1,83 @@
+// Module: Content Blog
+// Purpose: Opinionated blog schema with localized posts, taxonomy, and SEO metadata.
+
+enum PostStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  UNLISTED
+  ARCHIVED
+}
+
+model BlogPost {
+  id             String     @id @default(cuid())
+  organizationId String
+  authorUserId   String?
+  heroImageKey   String?
+  status         PostStatus @default(DRAFT)
+  primaryCategoryId String?
+  canonicalUrl   String?
+  featured       Boolean    @default(false)
+  publishedAt    DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([organizationId, status])
+}
+
+model BlogPostTranslation {
+  id        String   @id @default(cuid())
+  postId    String
+  locale    String
+  title     String
+  slug      String
+  excerpt   String?
+  content   Json
+  seo       Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([postId, locale])
+  @@unique([locale, slug])
+}
+
+model BlogCategory {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+}
+
+model BlogTag {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+}
+
+model BlogPostTag {
+  id      String @id @default(cuid())
+  postId  String
+  tagId   String
+  createdAt DateTime @default(now())
+
+  @@unique([postId, tagId])
+  @@index([tagId])
+}
+
+// Integration:
+// - Works with media-library for hero assets
+// - Shares taxonomy with content/cms-content for consistent editorial tagging
+// Notes:
+// - Slug uniqueness enforced per locale for international SEO
+// - Soft delete posts via deletedAt while preserving analytics sink

@@ -1,0 +1,92 @@
+// Module: Core Identity
+// Purpose: Defines the canonical User model along with profiles, preferences, and security events.
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  LOCKED
+}
+
+enum LocaleCode {
+  EN_US
+  ES_ES
+  PT_BR
+  FR_FR
+  DE_DE
+  IT_IT
+  JA_JP
+  ZH_CN
+}
+
+model User {
+  id             String     @id @default(cuid())
+  organizationId String?
+  email          String
+  phoneNumber    String?
+  status         UserStatus @default(INVITED)
+  displayName    String
+  givenName      String?
+  familyName     String?
+  pictureUrl     String?
+  locale         LocaleCode @default(EN_US)
+  timezone       String     @default("UTC")
+  lastActiveAt   DateTime?
+  metadata       Json?
+  deletedAt      DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@index([status])
+}
+
+model UserProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  bio            String?
+  headline       String?
+  location       String?
+  links          Json?
+  preferences    Json?
+  avatarStorageKey String?
+  pronouns       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model UserPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  namespace String
+  key       String
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, namespace, key])
+  @@index([namespace])
+}
+
+model UserSecurityEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  eventType   String
+  description String?
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, eventType])
+}
+
+// Integration:
+// - Referenced by almost every module through userId foreign keys
+// - Works with core/auth and core/rbac for security-sensitive workflows
+// Notes:
+// - Soft delete users via deletedAt; downstream queries should filter on NULL
+// - Extend metadata Json for custom per-tenant attributes without schema drift

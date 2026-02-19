@@ -1,0 +1,93 @@
+// Module: Streaming OTT Ads
+// Purpose: Ad campaigns, breaks, markers, and insertion telemetry for AVOD/FAST experiences.
+
+enum AdCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+model AdCampaign {
+  id             String           @id @default(cuid())
+  organizationId String
+  name           String
+  advertiser     String
+  status         AdCampaignStatus @default(DRAFT)
+  budget         Decimal          @db.Decimal(18,2)
+  currency       String           @default("USD")
+  targeting      Json?
+  startAt        DateTime?
+  endAt          DateTime?
+  metadata       Json?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([organizationId, status])
+}
+
+model AdBreak {
+  id             String   @id @default(cuid())
+  channelId      String?
+  contentId      String?
+  scheduleItemId String?
+  startsAt       DateTime
+  durationSeconds Int      @default(30)
+  targeting      Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([channelId, startsAt])
+  @@index([contentId])
+}
+
+model AdMarker {
+  id           String   @id @default(cuid())
+  contentId    String?
+  episodeId    String?
+  type         String   @default("VAST")
+  data         Json
+  positionSeconds Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([contentId, positionSeconds])
+}
+
+model AdInsertion {
+  id              String   @id @default(cuid())
+  adBreakId       String
+  campaignId      String
+  creativeId      String?
+  variant         String?
+  status          String   @default("queued")
+  startedAt       DateTime?
+  completedAt     DateTime?
+  errorMessage    String?
+  vmapTracking    Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([campaignId])
+  @@index([adBreakId])
+}
+
+model AdReport {
+  id             String   @id @default(cuid())
+  campaignId     String
+  impressionCount Int     @default(0)
+  clickCount     Int      @default(0)
+  quartiles      Json?
+  metadata       Json?
+  capturedAt     DateTime @default(now())
+
+  @@index([campaignId, capturedAt])
+}
+
+// Integration:
+// - Aligns with streaming/ott-playlists for channel scheduling
+// - Sends delivery events to analytics-events and telemetry modules
+// Notes:
+// - Ad markers store raw VAST/VMAP payloads for client consumption
+// - Keep insertion rows for billing even if campaign is cancelled mid-flight

@@ -1,0 +1,100 @@
+// Module: Core RBAC
+// Purpose: Supplies multi-tenant role, permission, and membership models with scope support.
+
+enum RoleScope {
+  SYSTEM
+  ORGANIZATION
+  PROJECT
+  ENVIRONMENT
+}
+
+enum PermissionAction {
+  READ
+  WRITE
+  DELETE
+  APPROVE
+  MANAGE
+}
+
+enum MembershipStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+}
+
+model Role {
+  id             String    @id @default(cuid())
+  organizationId String?
+  key            String
+  name           String
+  description    String?
+  scope          RoleScope @default(ORGANIZATION)
+  assignable     Boolean   @default(true)
+  metadata       Json?
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([organizationId, key])
+  @@index([scope])
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  resource    String
+  action      PermissionAction
+  description String?
+  constraints Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([resource, action])
+}
+
+model RolePermission {
+  id            String   @id @default(cuid())
+  roleId        String
+  permissionId  String
+  condition     Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([roleId, permissionId])
+  @@index([permissionId])
+}
+
+model Membership {
+  id             String           @id @default(cuid())
+  organizationId String
+  userId         String
+  roleId         String?
+  status         MembershipStatus @default(PENDING)
+  scopes         Json?
+  invitedByUserId String?
+  joinedAt       DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([roleId])
+}
+
+model MembershipScope {
+  id            String   @id @default(cuid())
+  membershipId  String
+  scopeType     String
+  scopeId       String
+  constraints   Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([membershipId, scopeType, scopeId])
+  @@index([scopeType, scopeId])
+}
+
+// Integration:
+// - Works with core/identity (User) and business/organizations (Organization)
+// - Pair with operations/support-ticketing or projects/tasks for fine-grained scopes
+// Notes:
+// - Soft delete roles via deletedAt; memberships remain for historical auditing
+// - scopes Json allows resource-level constraints without schema proliferation

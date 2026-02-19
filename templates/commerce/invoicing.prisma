@@ -1,0 +1,87 @@
+// Module: Commerce Invoicing
+// Purpose: Accounts receivable invoices, payments, and credit notes for B2B flows.
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIALLY_PAID
+  VOID
+  OVERDUE
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  organizationId String
+  customerId     String
+  invoiceNumber  String
+  currency       String        @default("USD")
+  subtotal       Decimal       @db.Decimal(18,2)
+  taxTotal       Decimal       @default(0) @db.Decimal(18,2)
+  total          Decimal       @db.Decimal(18,2)
+  balance        Decimal       @db.Decimal(18,2)
+  status         InvoiceStatus @default(DRAFT)
+  issuedAt       DateTime      @default(now())
+  dueAt          DateTime?
+  memo           String?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([organizationId, invoiceNumber])
+  @@index([customerId, status])
+}
+
+model InvoiceLineItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Decimal  @db.Decimal(18,4)
+  unitPrice   Decimal  @db.Decimal(18,4)
+  total       Decimal  @db.Decimal(18,2)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([invoiceId])
+}
+
+model InvoicePayment {
+  id           String   @id @default(cuid())
+  invoiceId    String
+  paymentId    String?
+  amount       Decimal  @db.Decimal(18,2)
+  currency     String   @default("USD")
+  receivedAt   DateTime @default(now())
+  method       String?
+  reference    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([invoiceId])
+}
+
+model CreditNote {
+  id             String   @id @default(cuid())
+  organizationId String
+  invoiceId      String?
+  number         String
+  amount         Decimal  @db.Decimal(18,2)
+  currency       String   @default("USD")
+  reason         String?
+  issuedAt       DateTime @default(now())
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, number])
+  @@index([invoiceId])
+}
+
+// Integration:
+// - Syncs with commerce/billing-subscriptions for recurring invoices
+// - Connects to commerce/payments for payment reconciliation
+// Notes:
+// - Keep invoices immutable post issuance; use CreditNote to adjust balances
+// - Balance field should be updated atomically when posting payments

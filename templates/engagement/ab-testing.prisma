@@ -1,0 +1,72 @@
+// Module: Engagement A/B Testing
+// Purpose: Experiment definitions, variants, exposures, and metric assignments for controlled tests.
+
+enum ExperimentStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+model Experiment {
+  id             String           @id @default(cuid())
+  organizationId String
+  key            String
+  name           String
+  description    String?
+  status         ExperimentStatus @default(DRAFT)
+  hypothesis     String?
+  targetMetric   String?
+  startAt        DateTime?
+  endAt          DateTime?
+  audienceFilter Json?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([organizationId, key])
+}
+
+model ExperimentVariant {
+  id            String   @id @default(cuid())
+  experimentId  String
+  key           String
+  name          String
+  allocation    Int      @default(50)
+  config        Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([experimentId, key])
+}
+
+model ExperimentExposure {
+  id             String   @id @default(cuid())
+  experimentId   String
+  variantId      String
+  userId         String?
+  anonymousId    String?
+  sessionId      String?
+  assignedAt     DateTime @default(now())
+  metadata       Json?
+
+  @@unique([experimentId, userId, anonymousId, sessionId])
+  @@index([experimentId, variantId])
+}
+
+model ExperimentMetric {
+  id            String   @id @default(cuid())
+  experimentId  String
+  metricKey     String
+  goal          String   @default("improvement")
+  createdAt     DateTime @default(now())
+
+  @@unique([experimentId, metricKey])
+}
+
+// Integration:
+// - Works with engagement/analytics-events to compute outcomes
+// - Coordinates with core/feature-flags for rollout control
+// Notes:
+// - Unique exposure constraint prevents duplicate assignments for same visitor fingerprint
+// - allocation values expressed as percentages (0-100)

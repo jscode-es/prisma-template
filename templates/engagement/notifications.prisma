@@ -1,0 +1,89 @@
+// Module: Engagement Notifications
+// Purpose: Multi-channel notification center with templates, preferences, and delivery tracking.
+
+enum NotificationChannelType {
+  EMAIL
+  PUSH
+  SMS
+  IN_APP
+  WEBHOOK
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model NotificationTemplate {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String
+  channel        NotificationChannelType
+  locale         String   @default("en")
+  subject        String?
+  body           Json
+  metadata       Json?
+  version        Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, key, channel, locale, version])
+}
+
+model NotificationChannel {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  type           NotificationChannelType
+  destination    String
+  verifiedAt     DateTime?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, userId, type, destination])
+}
+
+model NotificationPreference {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  channel        NotificationChannelType
+  topic          String
+  enabled        Boolean  @default(true)
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, userId, channel, topic])
+}
+
+model Notification {
+  id             String             @id @default(cuid())
+  organizationId String
+  userId         String?
+  channel        NotificationChannelType
+  templateKey    String?
+  title          String?
+  body           Json?
+  data           Json?
+  status         NotificationStatus @default(PENDING)
+  readAt         DateTime?
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  errorMessage   String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([organizationId, userId, status])
+}
+
+// Integration:
+// - Consumes events from engagement/comments, tasks, and commerce flows
+// - Works with infra/webhooks for webhook-based destinations
+// Notes:
+// - Channel definitions let you store verified push tokens with metadata (APNs, FCM, etc.)
+// - Keep Notification rows immutable aside from status timestamps for compliance

@@ -1,0 +1,93 @@
+// Module: Infra Webhooks
+// Purpose: Manage webhook endpoints, secrets, events, and delivery retries.
+
+enum WebhookStatus {
+  ACTIVE
+  DISABLED
+  PENDING
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+  RETRYING
+}
+
+model WebhookEndpoint {
+  id             String       @id @default(cuid())
+  organizationId String
+  tenantId       String?
+  url            String
+  description    String?
+  status         WebhookStatus @default(PENDING)
+  version        Int          @default(1)
+  events         String
+  secretId       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, url])
+}
+
+model WebhookSecret {
+  id          String   @id @default(cuid())
+  endpointId  String
+  hashedSecret String
+  createdAt   DateTime @default(now())
+  rotatedAt   DateTime?
+  expiresAt   DateTime?
+
+  @@unique([endpointId, hashedSecret])
+}
+
+model WebhookEvent {
+  id             String   @id @default(cuid())
+  organizationId String
+  resource       String
+  resourceId     String
+  eventKey       String
+  payload        Json
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, eventKey, createdAt])
+}
+
+model WebhookDelivery {
+  id             String         @id @default(cuid())
+  endpointId     String
+  eventId        String
+  status         DeliveryStatus @default(QUEUED)
+  responseCode   Int?
+  responseBody   String?
+  errorMessage   String?
+  attemptCount   Int            @default(0)
+  nextAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([endpointId, eventId])
+  @@index([status])
+}
+
+model WebhookRetry {
+  id          String   @id @default(cuid())
+  deliveryId  String
+  attempt     Int      @default(1)
+  status      DeliveryStatus
+  responseCode Int?
+  responseBody String?
+  errorMessage String?
+  executedAt  DateTime @default(now())
+
+  @@index([deliveryId])
+}
+
+// Integration:
+// - Emits change data from CMS, commerce, and streaming modules
+// - Works with infra/api-keys when exposing webhook management APIs
+// Notes:
+// - Store hashed secrets only; rotate by creating new WebhookSecret rows
+// - Delivery + retry tables enable durable at-least-once semantics

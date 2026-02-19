@@ -1,0 +1,106 @@
+// Module: Business Sales Pipeline
+// Purpose: Models revenue pipelines, stages, opportunities, and forecast adjustments.
+
+enum PipelineType {
+  NEW_BUSINESS
+  EXPANSION
+  RENEWAL
+}
+
+enum OpportunityStatus {
+  OPEN
+  WON
+  LOST
+  ON_HOLD
+}
+
+enum ForecastCategory {
+  COMMIT
+  BEST_CASE
+  PIPELINE
+  OMIT
+}
+
+model Pipeline {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  type           PipelineType @default(NEW_BUSINESS)
+  currency       String       @default("USD")
+  isDefault      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, name])
+}
+
+model PipelineStage {
+  id          String   @id @default(cuid())
+  pipelineId  String
+  name        String
+  probability Int      @default(0)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([pipelineId, name])
+  @@index([pipelineId, order])
+}
+
+model Opportunity {
+  id             String            @id @default(cuid())
+  organizationId String
+  pipelineId     String
+  stageId        String
+  contactId      String?
+  companyId      String?
+  ownerUserId    String?
+  name           String
+  amount         Decimal          @db.Decimal(18,2)
+  currency       String           @default("USD")
+  status         OpportunityStatus @default(OPEN)
+  closeDate      DateTime?
+  forecastingCategory ForecastCategory @default(PIPELINE)
+  probability    Int               @default(0)
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([organizationId, status])
+  @@index([pipelineId, stageId])
+}
+
+model StageChange {
+  id             String   @id @default(cuid())
+  opportunityId  String
+  fromStageId    String?
+  toStageId      String
+  changedByUserId String?
+  changedAt      DateTime @default(now())
+  metadata       Json?
+
+  @@index([opportunityId])
+  @@index([toStageId])
+}
+
+model ForecastAdjustment {
+  id             String           @id @default(cuid())
+  organizationId String
+  ownerUserId    String?
+  periodStart    DateTime
+  periodEnd      DateTime
+  category       ForecastCategory
+  amount         Decimal          @db.Decimal(18,2)
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([organizationId, ownerUserId, periodStart, periodEnd, category])
+}
+
+// Integration:
+// - Connects to business/crm for contacts and companies
+// - Feeds engagement/analytics-events for revenue dashboards
+// Notes:
+// - Stage changes form the backbone of win/loss metrics; never delete them
+// - Decimal columns sized for enterprise-scale currencies
