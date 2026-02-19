@@ -2,14 +2,14 @@
 
 > 🇬🇧 Merge modular Prisma templates to produce production-ready `schema.prisma` files. _(Default language: English)_
 >
-> 🇪🇸 Fusiona plantillas Prisma modulares para generar `schema.prisma` listos para producción. _(Traducción disponible)_
+> 🇪🇸 Traducción completa disponible en [docs/es.md](docs/es.md).
 
 ## 📚 Documentación / Documentation
 
-- 🇬🇧 English (default): [docs/en.md](docs/en.md)
-- 🇪🇸 Español (traducción): [docs/es.md](docs/es.md)
+- 🇬🇧 English (default, canonical): [docs/en.md](docs/en.md)
+- 🇪🇸 Spanish translation: [docs/es.md](docs/es.md)
 
-Cada guía cubre el flujo interactivo, las opciones y ejemplos detallados.
+Each guide covers the interactive flow, CLI flags, and detailed examples.
 
 ## 🧱 Categorías de plantillas / Template categories
 
@@ -24,7 +24,7 @@ Cada guía cubre el flujo interactivo, las opciones y ejemplos detallados.
 | `infra/`      | API keys, webhooks, rate limiting, IoT devices, telemetry _(API keys, webhooks, rate limiting, IoT, telemetry)_             |
 | `streaming/`  | OTT catalog, playlists, progress, entitlements, ads _(OTT catalog, playlists, progress, entitlements y ads)_                |
 
-Explora estas carpetas dentro de `templates/` para ver cada archivo `.prisma` disponible o crea los tuyos: el CLI los detectará automáticamente.
+Browse these folders under `templates/` to inspect every `.prisma` file or drop in new ones—the CLI picks them up automatically.
 
 ## 🚀 Quick peek
 
@@ -36,13 +36,13 @@ npx prisma-template
 npx prisma-template --db mysql --add auth billing ott --output ./prisma/schema.prisma
 ```
 
-Consulta la documentación localizada para conocer todas las capacidades y opciones avanzadas.
+See the localized docs for the full feature set and advanced options.
 
 ## 🧭 Template vs Custom
 
-Tras elegir la base de datos puedes decidir entre:
+After picking the database provider you can choose between:
 
-- **Template**: estructuras completas ya curadas (10 stacks como `OTT Platform`, `B2B SaaS Suite`, `Marketplace Hub`, `Creator Economy`, `Knowledge Hub`, `Support Ops`, `Booking Platform`, `IoT Fleet`, `Social Community`, `Education LMS`) que combinan múltiples categorías y que luego puedes ajustar si lo necesitas.
-- **Custom**: el flujo original donde navegas categoría por categoría y marcas los módulos que quieras combinar.
+- **Template**: ten curated stacks (e.g. `OTT Platform`, `B2B SaaS Suite`, `Marketplace Hub`, `Creator Economy`, `Knowledge Hub`, `Support Ops`, `Booking Platform`, `IoT Fleet`, `Social Community`, `Education LMS`) spanning multiple categories that you can accept or tweak.
+- **Custom**: the original browser where you hop across categories and toggle exactly the modules you need.
 
-Los detalles de cada plantilla predefinida están descritos en la documentación (EN/ES). Usa el modo que mejor encaje con la velocidad que necesitas.
+Every preset is documented in detail (EN/ES). Pick whichever mode matches the speed you need.
