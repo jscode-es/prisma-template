@@ -2,14 +2,16 @@
 
 > 🇬🇧 Merge modular Prisma templates to produce production-ready `schema.prisma` files. _(Default language: English)_
 >
-> 🇪🇸 Traducción completa disponible en [docs/es.md](docs/es.md).
+> 🇪🇸 Traducción completa disponible en [docs/es.md](https://unpkg.com/prisma-template@latest/docs/es.md).
 
-## 📚 Documentación / Documentation
+## 📚 Documentation
 
-- 🇬🇧 English (default, canonical): [docs/en.md](docs/en.md)
-- 🇪🇸 Spanish translation: [docs/es.md](docs/es.md)
+> Reading this on npm? Use the CDN links below because relative GitHub paths are not available here.
 
-Each guide covers the interactive flow, CLI flags, and detailed examples.
+- 🇬🇧 English (canonical): [docs/en.md](https://unpkg.com/prisma-template@latest/docs/en.md)
+- 🇪🇸 Spanish translation: [docs/es.md](https://unpkg.com/prisma-template@latest/docs/es.md)
+
+Each guide covers the interactive flow, CLI flags, and detailed examples. Both files also ship inside the npm tarball under `docs/` if you prefer local reading.
 
 ## 🧱 Categorías de plantillas / Template categories
 
@@ -36,7 +38,15 @@ npx prisma-template
 npx prisma-template --db mysql --add auth billing ott --output ./prisma/schema.prisma
 ```
 
-See the localized docs for the full feature set and advanced options.
+## 📦 Install
+
+```bash
+# Global install
+npm install -g prisma-template
+
+# Or run ad-hoc without installing globally
+npx prisma-template
+```
 
 ## 🧭 Template vs Custom
 

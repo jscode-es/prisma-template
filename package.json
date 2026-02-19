@@ -1,14 +1,23 @@
 {
   "name": "prisma-template",
-  "version": "0.1.0",
-  "description": "CLI para generar modelos de datos de Prisma con plantillas y modo interactivo.",
+  "version": "0.1.1",
+  "description": "CLI to compose Prisma schemas using modular templates and an interactive wizard.",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "templates",
+    "README.md",
+    "docs"
+  ],
   "bin": {
-    "prisma-template": "./src/index.ts"
+    "prisma-template": "./dist/index.js"
   },
   "scripts": {
     "dev": "ts-node src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build",
+    "publish_public:": "npm publish --access public"
   },
   "keywords": [
     "prisma",
