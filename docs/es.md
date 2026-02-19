@@ -10,13 +10,16 @@ Genera un `schema.prisma` profesional combinando módulos tipo LEGO, seleccionan
 - Permite elegir proveedor de base de datos (`postgresql`, `mysql`, `sqlserver`, `sqlite`, `mongodb`, `cockroachdb`).
 - Fusiona múltiples módulos (core, business, commerce, etc.) en un único `schema.prisma` listo para Prisma Client.
 - Incluye un asistente interactivo con navegación por categorías para seleccionar plantillas sin memorizar nombres.
-- Soporta uso directo por CLI (`--add auth billing ott`) y rutas personalizadas (`--output`).
+- Soporta uso directo por CLI (`--add auth billing ott`), selección headless de plantillas (`--preset ott-platform`) y rutas personalizadas (`--output`).
 
 ## Uso rápido
 
 ```bash
 # Modo interactivo
 npx prisma-template
+
+# Ejecutar una plantilla sin asistente
+npx prisma-template --db mysql --preset ott-platform --output ./prisma/schema.prisma
 
 # Ejemplo directo por CLI
 npx prisma-template --db mysql --add auth billing ott --output ./prisma/schema.prisma
@@ -45,34 +48,18 @@ npx prisma-template --db mysql --add auth billing ott --output ./prisma/schema.p
 | Social Community | Comunidad social con grafo, reacciones, moderación y experimentación.                 | `core/auth`, `core/identity`, `engagement/social`, `engagement/comments`, `engagement/reactions`, `engagement/moderation`, `engagement/notifications`, `engagement/ab-testing`                                                                                    |
 | Education LMS    | Plataforma educativa con cursos, media y comunidad.                                   | `core/auth`, `core/rbac`, `content/lms-elearning`, `content/cms-content`, `content/media-library`, `streaming/ott-progress`, `engagement/comments`, `engagement/reactions`, `engagement/notifications`, `infra/webhooks`                                          |
 
-Al elegir una template puedes aceptarla tal cual o abrir el navegador por categorías para sumar o quitar módulos antes de generar el `schema.prisma`.
+Al elegir una template puedes aceptarla tal cual o abrir el navegador por categorías para sumar o quitar módulos antes de generar el `schema.prisma`. Los IDs disponibles coinciden con los slugs de la tabla, así que también puedes ejecutarlos en modo no interactivo con `--preset <id>`.
 
 ## Opciones
 
-| Flag                       | Descripción                                                                    |
-| -------------------------- | ------------------------------------------------------------------------------ |
-| `-d, --db <provider>`      | Define el proveedor de base de datos (si no, se pregunta en modo interactivo). |
-| `-a, --add <templates...>` | Lista de módulos a incluir; acepta alias, prefijos o categorías completas.     |
-| `-o, --output <path>`      | Ruta donde guardar el `schema.prisma` generado (por defecto `schema.prisma`).  |
+| Flag                       | Descripción                                                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `-d, --db <provider>`      | Define el proveedor de base de datos (si no, se pregunta en modo interactivo).                                   |
+| `-a, --add <templates...>` | Lista de módulos a incluir; acepta alias, prefijos o categorías completas.                                       |
+| `-p, --preset <id>`        | Genera directamente desde una plantilla curada (`ott-platform`, `b2b-saas`, etc.). Puede combinarse con `--add`. |
+| `-o, --output <path>`      | Ruta donde guardar el `schema.prisma` generado (por defecto `schema.prisma`).                                    |
 
-> Nota: `--add` soporta distintos formatos: `--add auth business/projects ott`, `--add business`, `--add core:identity`. Los nombres se resuelven automáticamente contra las plantillas disponibles.
-
-## Organización de plantillas
-
-```
-templates/
-	core/
-		auth.prisma
-		identity.prisma
-	business/
-		organizations.prisma
-		...
-	...
-```
-
-- Cada archivo `.prisma` dentro de la jerarquía se detecta automáticamente.
-- Los módulos usan el patrón `<categoría>/<archivo>` (ej. `business/organizations`).
-- Puedes crear nuevas categorías; el CLI las encontrará sin configuración extra.
+> Nota: `--add` soporta distintos formatos: `--add auth business/projects ott`, `--add business`, `--add core:identity`. Los nombres se resuelven automáticamente contra las plantillas disponibles. `--preset` espera alguno de los slugs listados arriba (`ott-platform`, `b2b-saas`, `content-network`, etc.).
 
 ## Resultado
 
@@ -80,12 +67,5 @@ templates/
   - Bloque `generator client` y `datasource db` configurados con el proveedor elegido.
   - Contenido de cada plantilla precedido por `// ==== category/name ====` para identificar el origen.
 - Ideal para arrancar proyectos Prisma, ejecutar migraciones o extender manualmente.
-
-## Desarrollo
-
-```bash
-npm install
-npm run build
-```
 
 ¡Listo! Usa esta biblioteca para armar esquemas reusables y eficientes para tus proyectos Prisma.

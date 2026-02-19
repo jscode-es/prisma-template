@@ -29,6 +29,10 @@ program
     "Módulos a incluir (ej: auth billing ott)",
   )
   .option(
+    "-p, --preset <preset>",
+    "ID de plantilla predefinida (ej: ott-platform)",
+  )
+  .option(
     "-o, --output <output>",
     "Ruta donde guardar el schema final",
     "schema.prisma",
@@ -44,10 +48,18 @@ program
 
     const dbProvider = await chooseDatabaseProvider(options.db);
     const cliTemplates = normalizeTemplateArgs(options.add);
-    const selectedModules = await chooseModules(
-      cliTemplates,
+    const presetModules = resolvePresetModules(
+      options.preset,
       availableTemplates,
     );
+    const selectedModules = presetModules
+      ? mergeModules(
+          presetModules,
+          cliTemplates?.length
+            ? resolveTemplateTokens(cliTemplates, availableTemplates)
+            : [],
+        )
+      : await chooseModules(cliTemplates, availableTemplates);
 
     writeSchemaFile(dbProvider, selectedModules, options.output);
   });
@@ -108,6 +120,60 @@ function normalizeTemplateArgs(input?: string[]): string[] | undefined {
   if (!input?.length) return undefined;
   const values = input.flatMap((value) => value.split(","));
   return values.map((value) => value.trim()).filter(Boolean);
+}
+
+function resolvePresetModules(
+  presetId: string | undefined,
+  templates: TemplateModule[],
+): TemplateModule[] | undefined {
+  if (!presetId) return undefined;
+
+  const normalized = normalizePresetValue(presetId);
+  const preset = TEMPLATE_PRESETS.find(
+    (item) =>
+      normalizePresetValue(item.id) === normalized ||
+      normalizePresetValue(item.label) === normalized,
+  );
+
+  if (!preset) {
+    console.error(
+      chalk.red(
+        `No se encontró la plantilla "${presetId}". Opciones disponibles: ${TEMPLATE_PRESETS.map((item) => item.id).join(", ")}.`,
+      ),
+    );
+    process.exit(1);
+  }
+
+  try {
+    return resolveTemplateTokens(preset.modules, templates);
+  } catch (error) {
+    console.error(chalk.red((error as Error).message));
+    process.exit(1);
+  }
+}
+
+function normalizePresetValue(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-");
+}
+
+function mergeModules(
+  base: TemplateModule[],
+  extra: TemplateModule[],
+): TemplateModule[] {
+  if (!extra.length) return base;
+  const map = new Map<string, TemplateModule>();
+  const ordered: TemplateModule[] = [];
+
+  for (const module of [...base, ...extra]) {
+    if (map.has(module.label)) continue;
+    map.set(module.label, module);
+    ordered.push(module);
+  }
+
+  return ordered;
 }
 
 async function selectModeAndModules(

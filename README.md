@@ -34,6 +34,9 @@ Browse these folders under `templates/` to inspect every `.prisma` file or drop 
 # Interactive wizard
 npx prisma-template
 
+# Generate directly from a preset
+npx prisma-template --db mysql --preset ott-platform --output ./prisma/schema.prisma
+
 # Direct CLI example
 npx prisma-template --db mysql --add auth billing ott --output ./prisma/schema.prisma
 ```
@@ -56,3 +59,5 @@ After picking the database provider you can choose between:
 - **Custom**: the original browser where you hop across categories and toggle exactly the modules you need.
 
 Every preset is documented in detail (EN/ES). Pick whichever mode matches the speed you need.
+
+Skip the wizard entirely with `--preset <id>` (IDs: `ott-platform`, `b2b-saas`, `content-network`, `marketplace-hub`, `creator-economy`, `knowledge-hub`, `support-ops`, `booking-platform`, `iot-fleet`, `social-community`, `education-lms`).

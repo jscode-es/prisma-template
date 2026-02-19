@@ -1,6 +1,6 @@
 {
   "name": "prisma-template",
-  "version": "0.1.1",
+  "version": "0.2.1",
   "description": "CLI to compose Prisma schemas using modular templates and an interactive wizard.",
   "main": "dist/index.js",
   "files": [
